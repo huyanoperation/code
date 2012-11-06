@@ -1,7 +1,8 @@
 #include "CCXMLLayer.h"
 #include "AdvanceSprite.h"
 #include "GameConstant.h"
-
+#include "cocos-ext.h"
+using namespace extension;
 //--------------------------------------------------------------------------------------------------------------------
 //
 //
@@ -41,9 +42,8 @@ CCMenu* CreatGameUIButtonWithSprite( CCSprite* pSprite, SEL_MenuHandler callback
 	pMenu->setPosition( pos );
 	return pMenu;  
 }
-//----------------------------------------------------------------------------------------------------------------------
-//
-//
+
+
 CCControlButton *CreatGameUIButtonWith9Sprite( string path, SEL_CCControlHandler callback, int Id, CCObject *target, CCPoint pos, string text )
 {
     // Add the button
@@ -59,7 +59,7 @@ CCControlButton *CreatGameUIButtonWith9Sprite( string path, SEL_CCControlHandler
     controlButton->setPosition(pos);
     
     
-    controlButton->addTargetWithActionForControlEvent(target, callback, CCControlEventTouchUpInside);
+    controlButton->addTargetWithActionForControlEvents(target, callback, CCControlEventTouchUpInside);
     
     return controlButton;
 }
@@ -172,7 +172,7 @@ void CCXMLLayer::LoadPlist( const char *pList )
 		float w = imageDict->valueForKey("width")->floatValue();
 		float h = imageDict->valueForKey("height")->floatValue();
         #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-        if(  2 == CC_CONTENT_SCALE_FACTOR() || CCApplication::sharedApplication().isIpad() )
+        if(  2 == CC_CONTENT_SCALE_FACTOR() ||  cocos2d::CCApplication::sharedApplication()->getTargetPlatform() == kTargetIpad )
         {
             
         }
@@ -227,6 +227,28 @@ void CCXMLLayer::LoadPlist( const char *pList )
 			addChild( m_pAnimation, (int)layer );
 
 			m_vNodeObject.push_back( m_pAnimation );
+		}
+		else if( strstr( key.c_str(), "t2dPath_") )
+		{
+			string pathType = imageDict->valueForKey("pathType")->getCString();
+			int nodeCount = imageDict->valueForKey("nodeCount")->intValue();
+			string *pNameKey = new string( key );
+			CCPointArray *pArray = CCPointArray::create( nodeCount );
+			pArray->setUserData( pNameKey );
+			for( int ni = 0; ni < nodeCount; ni++ )
+			{
+				char nodeBuffer[32];
+				sprintf( nodeBuffer, "node%d", ni );
+				string node = imageDict->valueForKey(nodeBuffer)->getCString();
+				float nodex,nodey,nodez,nodev;
+				sscanf( node.c_str(),"%f %f %f %f" ,&nodex,&nodey,&nodez,&nodev );
+
+				float layer = 0;
+				TurnitorqueWorldToCoco2d( nodex, nodey, layer);
+				pArray->addControlPoint( ccp( nodex, nodey ) );
+			}
+			addChild( pArray );
+			m_vNodeObject.push_back( pArray );
 		}
 		else
 		{
